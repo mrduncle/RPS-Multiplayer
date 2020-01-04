@@ -24,6 +24,13 @@ $(document).on("click", "#button", function(event) {
     trainData.startTime = $("#start-time").val().trim();
     trainData.freq = $("#freq").val().trim();
     console.log(trainData);
+
+    database.ref().set({
+        trainname: trainData.trainName,
+        destination: trainData.dest,
+        starttime:trainData.startTime,
+        frequency: trainData.freq
+    })
 })
 
 database.ref().on("value", function(values) {
@@ -34,12 +41,7 @@ database.ref().on("value", function(values) {
     console.log(values.val().frequency)
 })
 
-database.ref().set({
-    trainname: trainData.trainName,
-    destination: trainData.dest,
-    starttime:trainData.startTime,
-    frequency: trainData.freq
-})
+
 
 
 /* <label for="train-input" class="headings">Train Name</label>
