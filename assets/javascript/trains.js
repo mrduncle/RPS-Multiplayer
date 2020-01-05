@@ -15,40 +15,64 @@ let firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 let database = firebase.database();
+// console.log("Hello, is anything working?")
+console.log(database);
 
+function checkFreq() {
+    if(isNaN(trainData.freq)) {
+        $("modal-validate").modal("show");
+    }
+}
 
-$(document).on("click", "#button", function(event) {
-    event.preventDefault();
+function checkTime() {
+    let regex = /(?:[01]\d|2[0123]):(?:[012345]\d)/;
+    if (!trainData.startTime.match(regex)) {
+        $("#modal-validate").modal("show");
+    }
+}
+
+function loadFormData() {
     trainData.trainName = $("#train-input").val().trim();
     trainData.dest = $("#dest").val().trim();
     trainData.startTime = $("#start-time").val().trim();
     trainData.freq = $("#freq").val().trim();
     console.log(trainData);
-
-    database.ref().set({
+    checkTime();
+    database.ref().push({
         trainname: trainData.trainName,
         destination: trainData.dest,
-        starttime:trainData.startTime,
+        starttime: trainData.startTime,
         frequency: trainData.freq
-    })
+    });
+}
+
+// $("#submit-button").click(function(event) {
+$(document).on("click", "#submit-button, #resubmit-time", function(event) {
+    console.log("Is it getting here?");
+    event.preventDefault();
+    if ($(this).attr("id") === "submit-button") {
+        console.log("What about here?");
+        loadFormData();
+    }
+    else if (($this).attr("id") === "resubmit-button") {
+        trainData.startTime = $("#new-time").val().trim();
+    }
+
+//         // checkFreq();
+//     }
+//     else {
+//         //pass
+    
+// }, function(errorObject) {
+//     console.log("Errors: " + errorObject.code);
 })
 
-database.ref().on("value", function(values) {
-    console.log(values.val());
-    console.log(values.val().trainname);
-    console.log(values.val().destination);
-    console.log(values.val().starttime);
-    console.log(values.val().frequency)
-})
 
 
-
-
-/* <label for="train-input" class="headings">Train Name</label>
-<input type="text" class="form-control" id="train-input" placeholder="Last Train to Nowhere">
-<label for="dest" class="headings">Destination</label>
-<input type="text" class="form-control" id="dest" placeholder="Nowhere">
-<label for="start-time" class="headings">First Train Time (HH:mm - 24 hour time)</label>
-<input type="text" class="form-control" id="start-time" placeholder="HH:mm">
-<label for="freq" class="headings">Frequency (min)</label>
-<input type="text" class="form-control" id="freq" placeholder="min"></input> */
+// database.ref().on("value", function(values) {
+//     console.log(values.val());
+//     console.log(values.val().trainname);
+//     console.log(values.val().destination);
+//     console.log(values.val().starttime);
+//     console.log(values.val().frequency)
+// })
