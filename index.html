@@ -59,17 +59,17 @@
                     <!-- </form> -->
                 </div>
                 <div class="modal-body text-dark py-1">
-                    <p id="message">You have not entered the time in 24 hour format (hh:mm). Enter it again in the correct format below.</p>
+                    <p id="modal-message"></p>
                     <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
+                        <!-- <div class="input-group-prepend">
                             <span class="input-group-text" id="field-name">Test</span>
                         </div>
                         <input type="text" class="form-control" id="new-time">
-                        <input type="submit" class="btn btn-primary close-modal" id="resubmit-time" value="Submit">
+                        <input type="submit" class="btn btn-primary close-modal" id="resubmit-time" value="Submit"> -->
                     </div>
                 </div>
                 <div class="modal-footer py-1">
-                    <!-- <button type="button" class="btn btn-primary close-modal" data-dismiss="modal">Close</button> the real close button -->  
+                    <button type="button" class="btn btn-primary close-modal" data-dismiss="modal">Close</button> <!--the real close button-->  
                 </div>
             </div>
         </div>
@@ -86,7 +86,7 @@
                 <input type="text" class="form-control" id="dest" placeholder="Nowhere">
                 <label for="start-time" class="headings">First Train Time (HH:mm - 24 hour time)</label>
                 <input type="text" class="form-control" id="start-time" placeholder="HH:mm">
-                <label for="freq" class="headings">Frequency (min)</label>
+                <label for="freq" class="headings">Frequency (whole minutes between 5 and 180)</label>
                 <input type="text" class="form-control" id="freq" placeholder="min">
                 
             </div>

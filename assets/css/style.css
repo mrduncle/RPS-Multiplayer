@@ -3,3 +3,7 @@
     font-weight: bold;
     padding-top: 30px;
 }
+
+#modal-message{
+    white-space: pre-line;
+}
