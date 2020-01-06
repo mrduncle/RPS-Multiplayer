@@ -1,6 +1,7 @@
 //@ts-check
 let trainData = {};
 let errorCheck = 0;
+let trainObj = {};
 
   // Your web app's Firebase configuration
 let firebaseConfig = {
@@ -16,17 +17,15 @@ let firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 let database = firebase.database();
-// console.log("Hello, is anything working?")
-console.log(database);
+
+function clearForm() {
+    $("#train-input").val("");
+    $("#dest").val("");
+    $("#start-time").val("");
+    $("#freq").val("");
+}
 
 function loadFormData() {
-    //extract the data from the form
-    trainData.trainName = $("#train-input").val().trim();
-    trainData.dest = $("#dest").val().trim();
-    trainData.startTime = $("#start-time").val().trim();
-    trainData.freq = $("#freq").val().trim();
-    console.log(trainData);
-
     //load validated data into the firebase database
     database.ref().push({
         trainname: trainData.trainName,
@@ -34,6 +33,22 @@ function loadFormData() {
         starttime: trainData.startTime,
         frequency: trainData.freq
     });
+}
+
+function assignEntries() {
+    //extract the data from the form into an object variable
+    trainData.trainName = $("#train-input").val().trim();
+    trainData.dest = $("#dest").val().trim();
+    trainData.startTime = $("#start-time").val().trim();
+    trainData.freq = $("#freq").val().trim();
+    //set up modal message for confirming the entered data
+    let confirmMsg = "Are you happy with the data entered and ready to commit to the database?\n" + 
+                     "\nTrain Name: " + trainData.trainName +
+                     "\nDestination: " + trainData.dest +
+                     "\nStart Time: " + trainData.startTime +
+                     "\nFrequency: " + trainData.freq;
+    $("#modal-msg").text(confirmMsg);
+    $("#modal-confirmentry").modal("show"); //display the modal with the entered data for confirmation
 }
 
 function validateEntries() {
@@ -69,20 +84,47 @@ function validateEntries() {
             "minutes - \t\t\t\t\tre-enter a valid frequency.\n";
         errorCheck += 1;
     }
-    $("#modal-message").text("You have not entered valid entries for the " + 
-        "following:\n" + modalErrors);
-    $("#modal-validate").modal("show");
+    if (errorCheck > 0) {
+        $("#modal-message").text("You have not entered valid entries for the " + 
+            "following:\n" + modalErrors);
+        $("#modal-validate").modal("show");
+    }
 }
 
-// $("#submit-button").click(function(event) {
-$(document).on("click", "#submit-button", function(event) {
+//listen for firebase value events
+database.ref().on("value", function(snapshot) {
+    $("tbody").html("");
+    let i = 0;
+    snapshot.forEach(function(childSnapshot) {
+        $("tbody").append("<tr id=row" + i + ">");
+        trainObj = childSnapshot.val();
+        console.log(trainObj);
+        //this is the order storedin firebase trainname (position 3), destination (position 0) and frequency (position 1)
+        let trainOrder = ["trainname", "destination", "frequency"];
+        trainOrder.forEach(function (value, index) {
+            let trainInfo = $("<td>");
+            trainInfo.text(trainObj[value])
+            $("#row" + i).append(trainInfo)
+        })
+        i++;
+    })
+})
+
+
+$(document).on("click", "#submit-button, #confirm-button", function(event) {
     event.preventDefault();
     if ($(this).attr("id") === "submit-button") {
         validateEntries();
         if (errorCheck === 0) {
-            loadFormData();
+            assignEntries();
         }
         errorCheck = 0;
+    }
+    else if ($(this).attr("id") === "confirm-button") {
+        console.log("Going here");
+        $("#modal-confirmentry").modal("hide");
+        loadFormData();
+        clearForm();
     }
 
 //         // checkFreq();

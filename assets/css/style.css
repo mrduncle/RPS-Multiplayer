@@ -4,6 +4,6 @@
     padding-top: 30px;
 }
 
-#modal-message{
+#modal-message, #modal-msg{
     white-space: pre-line;
 }
