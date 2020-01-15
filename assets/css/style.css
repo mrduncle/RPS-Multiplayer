@@ -4,6 +4,11 @@
     padding-top: 30px;
 }
 
-#modal-message, #modal-msg{
+#current-time {
+    font-size: 100px;
+    font-weight: bolder;
+}
+
+#modal-message, #modal-msg {
     white-space: pre-line;
 }

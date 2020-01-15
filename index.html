@@ -9,14 +9,21 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <!--Station name-->
-    <div id="board-header" class="d-block bg-primary text-white col-md-6 ml-5 mb-5 px-0 border border-primary rounded">
+    <div id="board-header" class="d-block bg-primary text-white col-md-6 ml-5 mb-3 px-0 border border-primary rounded">
         <h1 class="card-header text-center mx-0">
             Clown Central Station
         </h1>
+    </div>
+
+    <!--Current Time-->
+    <div class="col-md-6 ml-5 mb-3 text-center">
+        <h2 id="current-time">
+        </h2>
     </div>
     <!--Station timetable-->
     <div id="timetable" class="card col-md-6 ml-5 mb-5 px-0 border border-primary rounded">
@@ -111,5 +118,6 @@
     
 
     <script type="text/javascript" src="assets/javascript/trains.js"></script>
+    <script src="assets/javascript/node_modules/moment/moment.js"></script>
 </body>
 </html>
