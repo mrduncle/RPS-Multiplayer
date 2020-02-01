@@ -2,7 +2,7 @@
 
 const baseDate = "2020-01-02";
 let firstTime = 0;
-let noEntry = 1;
+let noEntry = 1; //prevents the initial on("child_added") from running
 let trainData = {};
 let arrIDs = [];
 let errorCheck = 0;
@@ -258,7 +258,12 @@ function calculateMins(dbInfo, when) {  //relies on the global trainObj for info
 // }
 
 function minuteMon(delay) {
-    $("#current-time").text(now);
+    //setInterval does its first execution only after the required delay
+    // meaning the clock, next arrival and minutes will miss the for the first minute 
+    if (!firstTime) {
+        retrieveData();
+        firstTime += 1;
+    }   
     setInterval(function() {
         retrieveData();
     }, delay);
@@ -324,11 +329,10 @@ function syncDisplay() {
     //synchronised, the interval can also be changed to monitoring every minute instead of every second
     //this should only execute once to clear the 1s period setInterval, change the delay interval to 60s
     //and run the setInterval routine at 60s
-    if (moment().seconds() === 0 && !firstTime) {
+    if (moment().seconds() === 00 && !firstTime) {
         console.log("How many times are we going through this procedure?")
         console.log(moment().format("HH:mm"));
         intvlDelay = 60000;
-        firstTime += 1; //this prevents this procedure from running again
         clearInterval(systemInitDisplay); //clear the setInterval which monitored every 1s DECOMMENT THIS!!!!!
         minuteMon(intvlDelay); //intiate the setInterval which monitors every 60s
     }
