@@ -1,7 +1,8 @@
 //@ts-check
 
-const baseDate = "2020-01-01";
+const baseDate = "2020-01-02";
 let firstTime = 0;
+let noEntry = 1;
 let trainData = {};
 let arrIDs = [];
 let errorCheck = 0;
@@ -43,27 +44,40 @@ let database = firebase.database();
 
 
 //listen for firebase value events and add the data to the webpage
-// database.ref().on("value", function(snapshot) { //this works but may not need to do it for every change to the database
+//database.ref().on("value", function(snapshot) { //this works but may not need to do it for every change to the database
 //listen for firebase child_added events the resulting snapshot only yields the added child
 //this is triggered when a new station is added to the database
 //from Stack Overflow https://stackoverflow.com/questions/11788902/firebase-child-added-only-get-child-added
-database.ref().endAt().limitToLast(1).on("child_added", function(snapshot) {
-    // .then(snapshot => {
+
+
+database.ref().orderByKey().limitToLast(1).on("child_added", function(snapshot) {
+    console.log("Did the path make it here for the update?");
+    console.log(snapshot.val());
+    if (!noEntry) {  //noEntry === 1 prevents this from running, child_added listener 
+                     //triggers once immediately and then every time a child is added
+                     //this is to prevent the below from happening in the first instance
+        noEntry = 0;
         populateTrain(snapshot, "later");
-        calculateMins(snapshot, "later");
-        // $("tbody").html("");
-        // snapshot.forEach(function(childSnapshot) {
-        //     $("tbody").append("<tr id=row" + rowNo + ">");
-        //     rows.push("#row" + rowNo); //populate an array for later use in updating times
-        //     trainObj = childSnapshot.val();
-        //     // console.log(trainObj);
-        //     //this is the order stored in firebase trainname (position 3), destination (position 0) and frequency (position 1)
-        //     let trainOrder = ["trainname", "destination", "frequency", "currenttime"];
-        //     trainOrder.forEach(function (value, index) {
-        //         let trainInfo = $("<td>");
-        //         trainInfo.text(trainObj[value])
-        //         $("#row" + rowNo).append(trainInfo)
-    })
+        // calculateMins(snapshot, "later");
+        $("tbody").html("");
+        snapshot.forEach(function(childSnapshot) {
+            $("tbody").append("<tr id=row" + rowNoTrain + ">");
+            rows.push("#row" + rowNoTrain); //populate an array for later use in updating times
+            let trainObj = childSnapshot.val();
+            // console.log(trainObj);
+            //this is the order stored in firebase trainname (position 3), destination (position 0) and frequency (position 1)
+            let trainOrder = ["trainname", "destination", "frequency", "currenttime"];
+            trainOrder.forEach(function (value, index) {
+                let trainInfo = $("<td>");
+                trainInfo.text(trainObj[value]);
+                $("#row" + rowNoTrain).append(trainInfo);
+            })
+        })
+    }
+    else {
+        console.log("child added was prevented from running");
+    }
+})
 
 function clearForm() {
     $("#train-input").val("");
@@ -87,6 +101,7 @@ function loadFormData() {
         frequency: trainData.freq,
         // currenttime: now
     });
+    noEntry = 0; //needed to allow the update procedure to run
 }
 
 function assignEntries() {
@@ -162,15 +177,16 @@ $(document).on("click", "#submit-button, #confirm-button", function(event) {
     }
 })
 
-//3 scenarios for populating minutes 2 methods passed from populateTrain (one more train added and first update) and the other from
-//regular 2 minute updates via minuteMon 
+//3 scenarios for populating minutes 2 methods passed from retrieveData (1 minute updates and first update) and the other from
+//regular 1 minute updates via minuteMon 
 
 function calculateMins(dbInfo, when) {  //relies on the global trainObj for information
+    console.log("calculate trainObj: " + JSON.stringify(dbInfo));
     let trainTime = {};
-    if (when === "first") rowNoMins = 0;
+    if (when === "first") rowNoMins = 0; //do we update all times regardless of the circumstances?
     dbInfo.forEach(function(child) {
         let trainSched = child.val();
-        console.log("From database: " + trainSched);
+        console.log(trainSched.starttime)
         trainTime.startTime = moment(baseDate + " " + trainSched.starttime);
         trainTime.currentTime = moment(baseDate + " " + now);
         trainTime.freq = parseInt(trainSched.frequency);
@@ -181,24 +197,31 @@ function calculateMins(dbInfo, when) {  //relies on the global trainObj for info
         trainTime.ratio = trainTime.diffNowStart / trainTime.freq;
         console.log("Ratio: " + trainTime.ratio);
         console.log("Frequency: " + trainTime.freq);
-        if (trainTime.ratio < 1) {
-            trainSched.nexttrain = moment(trainTime.startTime).add(trainSched.freq, "minutes").format("HH:mm");
-            console.log("Next train time: " + trainSched.nexttrain);
+        if (trainTime.diffNowStart < 0) {
+            trainSched.nexttrain = trainTime.startTime;
+            trainSched.minutes = Math.abs(trainTime.diffNowStart);
+        }
+        else if (trainTime.ratio < 1) {
+            trainSched.nexttrain = moment(trainTime.startTime).add(trainTime.freq, "minutes");
+            trainSched.minutes = moment(trainSched.nexttrain.diff(trainTime.currentTime)).format("mm");//.format("HH:mm");
         }
         else {
             console.log("Rounded ratio: " + Math.ceil(trainTime.ratio))
             console.log(typeof(trainTime.ratio));
             console.log(typeof(trainTime.freq));
             console.log("2 times: " + Math.ceil(trainTime.ratio) * trainTime.freq);
-            trainSched.nexttrain = trainTime.startTime.add(Math.ceil(trainTime.ratio) * trainSched.freq, "minutes").format("HH:mm");
+            trainSched.nexttrain = trainTime.startTime.add(Math.ceil(trainTime.ratio) * trainTime.freq, "minutes");
+            trainSched.minutes = moment(trainSched.nexttrain.diff(trainTime.currentTime)).format("mm");
         }
-        console.log("Next Train: " + trainSched.nexttrain);
-        trainSched.minutes = moment(trainSched.nexttrain).diff(trainTime.currentTime, "minutes");
+        
+        console.log(trainSched.minutes);
+        trainSched.nexttrain = trainSched.nexttrain.format("HH:mm");
+        console.log("Next train time: " + trainSched.nexttrain);
         let trainOrder = ["nexttrain", "minutes"];
         //get rid of the existing next arrival and minutes away columns for each row in turn if it currently exists
         let cellIdents = "tr[id='row" + rowNoMins + "'] td:nth-child(4), tr[id='row" + 
             rowNoMins + "'] td:nth-child(5)";
-        if ($(cellIdents).length) {
+        if ($(cellIdents).length) { //if this variable has a length then it exists
             $(cellIdents).remove();
         }
         //populate or repopulate the next arrival and minutes away columns for each row in turn
@@ -211,15 +234,7 @@ function calculateMins(dbInfo, when) {  //relies on the global trainObj for info
         console.log("Minutes Row No: " + rowNoMins);
     })
 }
-    
-function retrieveData() {
-    database.ref().once("value")
-        .then(snapshot => {
-            updateTime();
-            calculateMins(snapshot, "first");
-        })
-}        
-    
+     
     // let ratio = diffNowStart/freq;
     // if (ratio < 1) {
     //     trainObj.nexttrain = moment(moment(starttime).add(freq, "minutes")).format("HH:mm");
@@ -228,7 +243,7 @@ function retrieveData() {
     //     trainObj.nexttrain = moment(moment(starttime).add(Math.ceil(ratio) * freq, "minutes")).format("HH:mm");
     // }
     // console.log(trainObj.nexttrain);
-    // trainObj.minutes = moment(moment(trainObj.nexttrain).diff(moment(now), "minutes"));
+    // trainObj.minutes = momenst(moment(trainObj.nexttrain).diff(moment(now), "minutes"));
     // console.log(trainObj.minutes);
 
     // console.log(diffNowStart);
@@ -243,44 +258,68 @@ function retrieveData() {
 // }
 
 function minuteMon(delay) {
+    $("#current-time").text(now);
     setInterval(function() {
         retrieveData();
     }, delay);
 }
 
+function loopFBVals(trainObj) {
+    //this is the order stored in firebase trainname (position 3), destination (position 0) and frequency (position 1)
+    let trainOrder = ["trainname", "destination", "frequency"];
+    console.log("Last location dbInfo: " + JSON.stringify(trainObj));
+    // console.log(trainObj.trainname);
+    // console.log(trainObj["trainname"]);
+    // console.log(trainObj.destination);
+    // console.log(trainObj.frequency);
+    trainOrder.forEach(function (value, index) {
+        let trainInfo = $("<td>");
+        trainInfo.text(trainObj[value]);
+        $("#row" + rowNoTrain).append(trainInfo);
+    })
+}
+
 function populateTrain(dbInfo, when) {
+    let trainObj;
+    console.log("make it here to populate train? " + JSON.stringify(dbInfo));
+    // let trainOrder = ["trainname", "destination", "frequency"];
     if (when === "first") {
         rowNoTrain = 0;
         $("tbody").html("");
-    }
-    dbInfo.forEach(function(child) {
-        $("tbody").append("<tr id=row" + rowNoTrain + ">");
-        let trainObj = child.val();
-        // calculateMins();// console.log(child);
-        // console.log(trainObj);
-        //calculateMins(trainObj);
-        // console.log(trainObj);
-        //this is the order stored in firebase trainname (position 3), destination (position 0) and frequency (position 1)
-        let trainOrder = ["trainname", "destination", "frequency"];
-        trainOrder.forEach(function (value, index) {
-            let trainInfo = $("<td>");
-            trainInfo.text(trainObj[value]);
-            $("#row" + rowNoTrain).append(trainInfo);
+        // const keys = Object.keys(dbInfo);
+        // console.log("Object into array: " + keys);
+        dbInfo.forEach(function(child) {
+            $("tbody").append("<tr id=row" + rowNoTrain + ">");
+            trainObj = child.val();
+            console.log(trainObj);
+            console.log("Row No: " + rowNoTrain);
+            // calculateMins();// console.log(child);
+            //calculateMins(trainObj);
+              
+            loopFBVals(trainObj);
+            // trainOrder.forEach(function (value, index) {
+            //     let trainInfo = $("<td>");
+            //     trainInfo.text(trainObj[value]);
+            //     $("#row" + rowNoTrain).append(trainInfo);
+            // })
+            rowNoTrain++;
         })
-        rowNoTrain++;
-    })
-    calculateMins(dbInfo, when);
+        calculateMins(dbInfo, when); //this required to populate the next arrival and minutes columns within the first 60s 
+    }
+    else if (when === "later") {
+        trainObj = dbInfo.val();
+        loopFBVals(trainObj);
+        // trainOrder.forEach(function (value, index){
+        //     let traininfo = $("<td>");
+        //     traininfo.text(dbInfo.val()[value]);
+        //     $("#row" + rowNoTrain).append(trainInfo);
+        // })
+    }
+    console.log("populate trainObj: " + JSON.stringify(trainObj));
+    // calculateMins(dbInfo, when);
 }
 
-function updateTime() {
-    //if nothing is displayed then display it now instead of waiting for the first 60 seconds to elapse
-    now = moment().format("HH:mm");
-    if ($("#current-time").text().trim() === "") { 
-        database.ref().once("value")
-            .then(snapshot => {
-                populateTrain(snapshot, "first");
-        })
-    }
+function syncDisplay() {
     //this is the point where the system clock has just reached 60s and therefore the display can now be
     //synchronised, the interval can also be changed to monitoring every minute instead of every second
     //this should only execute once to clear the 1s period setInterval, change the delay interval to 60s
@@ -290,9 +329,25 @@ function updateTime() {
         console.log(moment().format("HH:mm"));
         intvlDelay = 60000;
         firstTime += 1; //this prevents this procedure from running again
-        clearInterval(systemInitDisplay); //clear the setInterval which monitored every 1s
+        clearInterval(systemInitDisplay); //clear the setInterval which monitored every 1s DECOMMENT THIS!!!!!
         minuteMon(intvlDelay); //intiate the setInterval which monitors every 60s
     }
+}
+
+function updateTime() {
+    //if nothing is displayed then display it now instead of waiting for the first 60 seconds to elapse
+    now = moment().format("HH:mm");
+    if ($("#current-time").text().trim() === "") { 
+        database.ref().once("value", function(data) {
+            // console.log("updateTime: " + JSON.stringify(data));
+            populateTrain(data, "first");
+        })
+        //     .then(snapshot => {  probably delete this 31/1
+        //         console.log("updateTime: " + JSON.stringify(snapshot));
+        //         populateTrain(snapshot, "first");
+        // })
+    }
+   
     //this is the only part of the procedure that runs each time after the first few iterations required to 
     //synchronise seconds between the system clock and the displayed time
     console.log("Current Time: " + now);
@@ -300,13 +355,21 @@ function updateTime() {
     // calculateMins();
 }
 
+function retrieveData() {
+    database.ref().once("value")
+        .then(snapshot => {
+            updateTime();
+            calculateMins(snapshot, "first");
+        })
+}   
+
 //update the time display every minute using setInterval
 let systemInitDisplay = setInterval (function() {
-    // now = moment().format("HH:mm");
-    updateTime();
+    now = moment().format("HH:mm");  //update the current time which is only necessary for the end of the first minute
+    syncDisplay();
 }, intvlDelay); //set to 1s (1000ms) initially until the display and system sync then changed to 60000
 
-updateTime();
+retrieveData();
 
 //         // checkFreq();
 //     }
