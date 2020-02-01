@@ -6,10 +6,9 @@ let firstTime = 0; //used as means to immediately populate the table
                    //waiting the first minute for the setInterval delay
 let noEntry = 1; //prevents the initial on("child_added") from running
 let trainData = {};
-let arrIDs = [];
 let errorCheck = 0;
 let now;  //monitors the current time based on the computer's clock
-let rowNoTrain = 0;
+let rowNoTrain = 0; //keeps track of the last train row number
 let rowNoMins = 0;
 let intvlDelay = 1000; //the train schedule is updated every minute but when 
                        //the program is first initiated it could occur at any 
@@ -190,7 +189,7 @@ function calculateMins(child, trainTime) {
     //- where the train start time has passed but only the first train has left for the day
     else if (trainTime.ratio < 1) {
         trainSched.nexttrain = moment(trainTime.startTime).add(trainTime.freq, "minutes");
-        trainSched.minutes = moment(trainSched.nexttrain.diff(trainTime.currentTime)).format("mm");
+        trainSched.minutes = moment(trainSched.nexttrain.diff(trainTime.currentTime)).format("m");
     }
     //- where the train start time has passed and several trains have left for the day
     else {
